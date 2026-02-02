@@ -1,0 +1,34 @@
+image:
+  repository: apache/nifi-registry
+  tag: 2.6.0
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 18080
+
+ingress:
+  enabled: true
+  className: nginx
+  host: nifi-registry.com
+  path: /
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 768Mi
+  limits:
+    cpu: 2
+    memory: 2Gi
+
+jdbc:
+  driverVersion: "42.7.9"
+
+database:
+  host: postgresql.nifi-registry.svc.cluster.local
+  port: 5432
+  name: nifi-registry
+  user: nifi
+  password: nifi-password
