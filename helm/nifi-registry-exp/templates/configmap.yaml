@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: nifi-registry-config
-data:
-  NIFI_REGISTRY_DB_URL: "jdbc:postgresql://{{ .Values.database.host }}:{{ .Values.database.port }}/{{ .Values.database.name }}"
-  NIFI_REGISTRY_DB_CLASS: "org.postgresql.Driver"
-  NIFI_REGISTRY_FLOW_PROVIDER: "database"
