@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: nifi-registry
+  name: {{ .Release.Name }}
 spec:
   type: ClusterIP
   selector:
-    app: nifi-registry
+    app: {{ .Release.Name }}
   ports:
     - name: http
       port: {{ .Values.service.port }}
-      targetPort: {{ .Values.service.port }}
+      targetPort: http
