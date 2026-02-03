@@ -14,3 +14,18 @@ postgres:
 jdbc:
   driverUrl: https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.9/postgresql-42.7.9.jar
   driverClass: org.postgresql.Driver
+
+ingress:
+  enabled: true
+  className: nginx
+  host: nifi-registry-exp.local
+  path: /nifi-registry
+
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+
+  tls:
+    enabled: false
+    secretName: nifi-registry-exp-tls
