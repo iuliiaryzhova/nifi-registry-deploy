@@ -3,9 +3,10 @@ kind: Service
 metadata:
   name: nifi-registry
 spec:
-  type: {{ .Values.service.type }}
-  ports:
-    - port: {{ .Values.service.port }}
-      targetPort: 18080
+  type: ClusterIP
   selector:
     app: nifi-registry
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.port }}

@@ -18,41 +18,55 @@ spec:
           command:
             - sh
             - -c
-            - >
-              mkdir -p /opt/nifi-registry/nifi-registry-current/lib/ext &&
-              curl -fL
-              https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.9/postgresql-42.7.9.jar
-              -o /opt/nifi-registry/nifi-registry-current/lib/ext/postgresql.jar
+            - |
+              set -e
+              mkdir -p /jdbc
+              curl -L "{{ .Values.jdbc.driverUrl }}" -o /jdbc/postgresql.jar
           volumeMounts:
-            - name: registry-lib-ext
-              mountPath: /opt/nifi-registry/nifi-registry-current/lib/ext
+            - name: jdbc
+              mountPath: /jdbc
 
-      containers:
-        - name: nifi-registry
-          image: "apache/nifi-registry:2.6.0"
-          imagePullPolicy: IfNotPresent
+        - name: render-config
+          image: busybox:1.36
+          envFrom:
+            - secretRef:
+                name: {{ .Values.postgres.secretName }}
           command:
             - sh
             - -c
-            - >
-              /opt/nifi-registry/nifi-registry-current/bin/nifi-registry.sh start &&
-              tail -f /opt/nifi-registry/nifi-registry-current/logs/nifi-registry-app.log
-          ports:
-            - containerPort: 18080
-          envFrom:
-            - secretRef:
-                name: nifi-registry-db
-          resources:
-            limits:
-              cpu: 2
-              memory: 2Gi
-            requests:
-              cpu: 500m
-              memory: 768Mi
+            - |
+              set -e
+              mkdir -p /conf
+              cat > /conf/nifi-registry.properties <<EOF
+              nifi.registry.web.http.port={{ .Values.service.port }}
+
+              nifi.registry.db.url=jdbc:postgresql://{{ .Values.postgres.host }}:{{ .Values.postgres.port }}/${POSTGRES_DB}
+              nifi.registry.db.driver.class={{ .Values.jdbc.driverClass }}
+              nifi.registry.db.driver.directory=./jdbc
+              nifi.registry.db.username=${POSTGRES_USER}
+              nifi.registry.db.password=${POSTGRES_PASSWORD}
+
+              nifi.registry.extension.dir=./extensions
+              EOF
           volumeMounts:
-            - name: registry-lib-ext
-              mountPath: /opt/nifi-registry/nifi-registry-current/lib/ext
+            - name: conf
+              mountPath: /conf
+
+      containers:
+        - name: nifi-registry
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
+          volumeMounts:
+            - name: jdbc
+              mountPath: /opt/nifi-registry/jdbc
+            - name: conf
+              mountPath: /opt/nifi-registry/nifi-registry.properties
+              subPath: nifi-registry.properties
 
       volumes:
-        - name: registry-lib-ext
+        - name: jdbc
+          emptyDir: {}
+        - name: conf
           emptyDir: {}

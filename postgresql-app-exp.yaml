@@ -3,6 +3,7 @@ kind: Application
 metadata:
   name: postgresql-exp
   namespace: argocd
+  argocd.argoproj.io/sync-wave: "0"
 spec:
   project: default
 
