@@ -3,7 +3,6 @@ kind: Application
 metadata:
   name: nifi-registry-exp
   namespace: argocd
-  argocd.argoproj.io/sync-wave: "1"
 spec:
   project: default
 
