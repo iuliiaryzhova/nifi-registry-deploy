@@ -20,11 +20,17 @@ spec:
             - -c
             - |
               set -e
-              mkdir -p /jdbc
-              curl -L "{{ .Values.jdbc.driverUrl }}" -o /jdbc/postgresql.jar
+              mkdir -p /opt/nifi-registry/nifi-registry-current/lib/ext
+              for i in 1 2 3 4 5; do
+                curl -fL "{{ .Values.jdbc.driverUrl }}" \
+                  -o /opt/nifi-registry/nifi-registry-current/lib/ext/postgresql.jar && exit 0
+                echo "curl failed, retry $i/5"
+                sleep 5
+              done
+              exit 1
           volumeMounts:
-            - name: jdbc
-              mountPath: /jdbc
+            - name: registry-lib-ext
+              mountPath: /opt/nifi-registry/nifi-registry-current/lib/ext
 
         - name: render-config
           image: busybox:1.36
@@ -38,18 +44,21 @@ spec:
               set -e
               mkdir -p /conf
               cat > /conf/nifi-registry.properties <<EOF
+              # --- Web (IMPORTANT for kubectl port-forward) ---
+              nifi.registry.web.http.host=0.0.0.0
               nifi.registry.web.http.port={{ .Values.service.port }}
 
+              # --- DB (PostgreSQL) ---
               nifi.registry.db.url=jdbc:postgresql://{{ .Values.postgres.host }}:{{ .Values.postgres.port }}/${POSTGRES_DB}
               nifi.registry.db.driver.class={{ .Values.jdbc.driverClass }}
-              nifi.registry.db.driver.directory=./jdbc
+              nifi.registry.db.driver.directory=./lib/ext
               nifi.registry.db.username=${POSTGRES_USER}
               nifi.registry.db.password=${POSTGRES_PASSWORD}
 
               nifi.registry.extension.dir=./extensions
               EOF
           volumeMounts:
-            - name: conf
+            - name: registry-conf
               mountPath: /conf
 
       containers:
@@ -58,15 +67,25 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.service.port }}
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xms512m -Xmx1024m"
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              cp /conf/nifi-registry.properties /opt/nifi-registry/nifi-registry-current/conf/nifi-registry.properties
+              /opt/nifi-registry/nifi-registry-current/bin/nifi-registry.sh start
+              tail -F /opt/nifi-registry/nifi-registry-current/logs/nifi-registry-app.log
           volumeMounts:
-            - name: jdbc
-              mountPath: /opt/nifi-registry/jdbc
-            - name: conf
-              mountPath: /opt/nifi-registry/nifi-registry.properties
-              subPath: nifi-registry.properties
+            - name: registry-lib-ext
+              mountPath: /opt/nifi-registry/nifi-registry-current/lib/ext
+            - name: registry-conf
+              mountPath: /conf
 
       volumes:
-        - name: jdbc
+        - name: registry-lib-ext
           emptyDir: {}
-        - name: conf
+        - name: registry-conf
           emptyDir: {}
