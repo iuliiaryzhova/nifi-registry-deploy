@@ -20,6 +20,8 @@ ingress:
   className: nginx
   host: nifi-registry-exp.local
   path: /
+  tls:
+    secretName: my-tls
 
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: "0"
